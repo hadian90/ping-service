@@ -22,7 +22,7 @@ var (
 
 func main() {
 
-	db, err := obj.OpenDB("hadian90:hadian90@/ping-service")
+	db, err := obj.OpenDB("hadian90:hadian90@/ping_service")
 	helper.ErrorHandler(err)
 
 	defer db.Close()
