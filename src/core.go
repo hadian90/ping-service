@@ -14,13 +14,17 @@ type Core struct {
 // HTTPBackgroundService ...
 func (c *Core) HTTPBackgroundService() {
 	for range time.Tick(50 * time.Millisecond) {
-		c.MonitorHTTP(1)
+		c.MonitorHTTP(5)
+		c.MonitorHTTP(10)
+		c.MonitorHTTP(15)
 	}
 }
 
 // PingBackgroundService ...
 func (c *Core) PingBackgroundService() {
 	for range time.Tick(50 * time.Millisecond) {
-		c.MonitorPing(1)
+		c.MonitorPing(5)
+		c.MonitorPing(10)
+		c.MonitorPing(15)
 	}
 }
