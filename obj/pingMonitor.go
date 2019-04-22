@@ -72,6 +72,7 @@ func (db *DB) pingRequestHandler(pm Monitor) {
 		db.updateMonitor(pm.ID, fmt.Sprintf("OK with %v%% packet loss", stats.PacketLoss))
 	}
 
+	pinger.SetPrivileged(true)
 	pinger.Run()
 }
 
