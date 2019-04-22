@@ -16,6 +16,12 @@ func (m *Monitor) AddNewKeywordMonitor(ctx echo.Context) error {
 	err := ctx.Bind(d)
 	helper.ErrorHandler(err)
 
+	// capture user id
+	userid, err := strconv.Atoi(ctx.Request().Header.Get("user_id"))
+	helper.ErrorHandler(err)
+
+	d.UserID = userid
+
 	m.StoreKeywordMonitor(d)
 
 	return ctx.JSON(200, obj.Response{
