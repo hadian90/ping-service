@@ -3,7 +3,6 @@ package obj
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/hadian90/ping-service/helper"
@@ -58,7 +57,7 @@ func (db *DB) httpRequestHandler(hm Monitor) {
 	// make http request to destination
 	resp, err := http.Get(hm.Destination)
 	if err != nil {
-		db.updateMonitor(hm.ID, err.Error())
+		db.updateMonitor(hm.ID, "Http", resp.StatusCode, err.Error())
 		return
 	}
 
@@ -67,7 +66,7 @@ func (db *DB) httpRequestHandler(hm Monitor) {
 	fmt.Println("\n", hm.Destination, " - HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
 
 	// store response status
-	db.updateMonitor(hm.ID, strconv.Itoa(resp.StatusCode))
+	db.updateMonitor(hm.ID, "Http", resp.StatusCode, "Everything is OK")
 }
 
 // -------------------------- CODE FOR MONITOR END -------------------

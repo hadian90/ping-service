@@ -22,7 +22,7 @@ var (
 
 func main() {
 
-	db, err := obj.OpenDB("hadian90:hadian90@/ping_service")
+	db, err := obj.OpenDB("hadian90:hadian90@/ping-service")
 	helper.ErrorHandler(err)
 
 	defer db.Close()
@@ -34,6 +34,7 @@ func main() {
 	// run monitor service
 	go core.HTTPBackgroundService()
 	go core.PingBackgroundService()
+	go core.KeywordBackgroundService()
 
 	// Echo instance
 	e := echo.New()

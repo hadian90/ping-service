@@ -28,3 +28,12 @@ func (c *Core) PingBackgroundService() {
 		c.MonitorPing(15)
 	}
 }
+
+// KeywordBackgroundService ...
+func (c *Core) KeywordBackgroundService() {
+	for range time.Tick(50 * time.Millisecond) {
+		c.MonitorKeyword(5)
+		c.MonitorKeyword(10)
+		c.MonitorKeyword(15)
+	}
+}

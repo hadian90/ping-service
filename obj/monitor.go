@@ -31,6 +31,12 @@ type (
 		Status       string `json:"status"`
 	}
 
+	// KeywordMonitor ...
+	KeywordMonitor struct {
+		Monitor
+		Keyword
+	}
+
 	// MonitorData ...
 	MonitorData struct {
 		ID               int    `json:"id"`
@@ -38,6 +44,14 @@ type (
 		RequestTimestamp string `json:"request_timestamp"`
 		RequestID        int    `json:"request_id"`
 		Status           string `json:"status"`
+	}
+
+	// Keyword ...
+	Keyword struct {
+		kID           int    `json:"id"`
+		RequestID     int    `json:"request_id"`
+		Text          string `json:"text"`
+		ConditionType string `json:"condition_type"`
 	}
 )
 
@@ -66,7 +80,7 @@ func (db *DB) ListMonitor(userid int, pagesid int) []Monitor {
 			&md.ID, &md.UserID, &md.Name, &md.Destination, &md.Type, &md.PagesID, &md.TimeInterval, &md.CreatedAt, &md.LastRequest)
 		helper.ErrorHandler(err)
 
-		// get monitor data
+		// get monitor data (query ke 2)
 		md.Status = db.latestMonitorStatus(md.ID)
 
 		resultArray = append(resultArray, md)
@@ -205,14 +219,14 @@ func (db *DB) latestMonitorStatus(id int) string {
 	return status
 }
 
-func (db *DB) updateMonitor(id int, status string) {
+func (db *DB) updateMonitor(id int, mType string, status int, message string) {
 	// store response status
-	dataStmtIns, err := db.Prepare("INSERT INTO monitor_data (monitor_type, request_id, status) VALUES ( ?, ?, ? )")
+	dataStmtIns, err := db.Prepare("INSERT INTO monitor_data (monitor_type, request_id, status, message) VALUES ( ?, ?, ?, ? )")
 	helper.ErrorHandler(err)
 
 	defer dataStmtIns.Close()
 
-	_, err = dataStmtIns.Exec("Http", id, status)
+	_, err = dataStmtIns.Exec(mType, id, status, message)
 	helper.ErrorHandler(err)
 }
 

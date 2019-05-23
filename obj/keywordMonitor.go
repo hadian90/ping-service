@@ -2,7 +2,9 @@ package obj
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/hadian90/ping-service/helper"
@@ -19,9 +21,11 @@ func (db *DB) StoreKeywordMonitor(d *NewMonitor) {
 // MonitorKeyword ...
 func (db *DB) MonitorKeyword(interval int) {
 
-	var km Monitor
+	var km KeywordMonitor
 	// get targer request
-	stmtOut, err := db.Prepare("SELECT * FROM " + table + " WHERE type = 'keyword' AND time_interval = ? AND last_request < ?")
+	stmtOut, err := db.Prepare(
+		"SELECT r.*, k.text, k.condition_type FROM " + table +
+			" r, keyword k  WHERE r.type = 'keyword' AND k.request_id = r.id AND r.time_interval = ? AND r.last_request < ?")
 	helper.ErrorHandler(err)
 	defer stmtOut.Close()
 
@@ -34,7 +38,9 @@ func (db *DB) MonitorKeyword(interval int) {
 	for rows.Next() {
 		// collect data from database
 		err := rows.Scan(
-			&km.ID, &km.UserID, &km.Name, &km.Destination, &km.Type, &km.PagesID, &km.TimeInterval, &km.CreatedAt, &km.LastRequest)
+			&km.ID, &km.UserID, &km.Name, &km.Destination, &km.Type,
+			&km.PagesID, &km.TimeInterval, &km.CreatedAt, &km.LastRequest,
+			&km.Text, &km.ConditionType)
 		helper.ErrorHandler(err)
 
 		// update target request
@@ -46,25 +52,48 @@ func (db *DB) MonitorKeyword(interval int) {
 		_, err = stmtUpd.Exec(time.Now(), km.ID)
 		helper.ErrorHandler(err)
 
-		// make http request to destination
-		resp, err := http.Get(km.Destination)
-		if err != nil {
-			// if error skip loop
-			break
+		go db.keywordRequestHandler(km)
+
+	}
+}
+
+func (db *DB) keywordRequestHandler(km KeywordMonitor) {
+	fmt.Println("Request ", km.Destination)
+	// make http request to destination
+	resp, err := http.Get(km.Destination)
+	if err != nil {
+		db.updateMonitor(km.ID, "Http", resp.StatusCode, err.Error())
+		return
+	}
+
+	defer resp.Body.Close()
+
+	fmt.Println("\n", km.Destination, " - HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
+
+	// scrap the website for text
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		helper.ErrorHandler(err)
+	}
+
+	re := regexp.MustCompile("^(.*?(\b" + km.Text + "\b)[^$]*)$")
+	comments := re.FindAllString(string(body), -1)
+	if comments == nil {
+		fmt.Println("No matches.")
+		if km.ConditionType == "Found" {
+			db.updateMonitor(km.ID, "Keyword", 404, "Keyword Not Found")
+		} else {
+			db.updateMonitor(km.ID, "Keyword", 200, "Keyword Found")
 		}
-		defer resp.Body.Close()
-
-		fmt.Println("HTTP Response Status:", resp.StatusCode, http.StatusText(resp.StatusCode))
-
-		// store response status
-		dataStmtIns, err := db.Prepare("INSERT INTO monitor_data (monitor_type, request_id, status) VALUES ( ?, ?, ? )")
-		helper.ErrorHandler(err)
-
-		defer dataStmtIns.Close()
-
-		_, err = dataStmtIns.Exec("Keyword", km.ID, resp.StatusCode)
-		helper.ErrorHandler(err)
-
+	} else {
+		for _, comment := range comments {
+			fmt.Println(comment)
+		}
+		if km.ConditionType == "Found" {
+			db.updateMonitor(km.ID, "Keyword", 200, "Keyword Found")
+		} else {
+			db.updateMonitor(km.ID, "Keyword", 404, "Keyword Not Found")
+		}
 	}
 }
 

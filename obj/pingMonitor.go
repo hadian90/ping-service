@@ -56,20 +56,17 @@ func (db *DB) pingRequestHandler(pm Monitor) {
 	// make ping request to destination
 	pinger, err := ping.NewPinger(pm.Destination)
 	if err != nil {
-		db.updateMonitor(pm.ID, err.Error())
+		db.updateMonitor(pm.ID, "Ping", 1, err.Error())
 		return
 	}
-	pinger.Count = 1
+	pinger.Count = 3
 
 	pinger.OnFinish = func(stats *ping.Statistics) {
-		fmt.Printf("\n--- %s ping statistics ---\n", stats.Addr)
 		fmt.Printf("%d packets transmitted, %d packets received, %v%% packet loss\n",
 			stats.PacketsSent, stats.PacketsRecv, stats.PacketLoss)
-		fmt.Printf("round-trip min/avg/max/stddev = %v/%v/%v/%v\n",
-			stats.MinRtt, stats.AvgRtt, stats.MaxRtt, stats.StdDevRtt)
 
 		// store condition on monitor data
-		db.updateMonitor(pm.ID, fmt.Sprintf("OK with %v%% packet loss", stats.PacketLoss))
+		db.updateMonitor(pm.ID, "Ping", 0, fmt.Sprintf("OK with %v%% packet loss", stats.PacketLoss))
 	}
 
 	pinger.SetPrivileged(true)
